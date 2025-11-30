@@ -1,0 +1,10 @@
+spring:
+  config:
+    import: classpath:/application.yml
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${SYNC_DB_URL}
+    username: ${SYNC_DB_USER}
+    password: ${SYNC_DB_PASSWORD}
