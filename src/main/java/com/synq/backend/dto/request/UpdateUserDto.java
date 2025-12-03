@@ -8,8 +8,10 @@ import java.util.Map;
  * DTO for updating an existing user
  */
 public record UpdateUserDto(
-        String displayName,
+        String firstName,
+        String lastName,
         String avatarUrl,
+        String email,
         Boolean emailVerified,
         UserStatus status,
         Map<String, Object> metadata

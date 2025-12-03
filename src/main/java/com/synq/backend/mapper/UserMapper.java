@@ -6,9 +6,6 @@ import com.synq.backend.dto.response.UserDto;
 import com.synq.backend.model.User;
 import org.mapstruct.*;
 
-/**
- * MapStruct mapper for User entity
- */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 

@@ -25,6 +25,3 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-
-keycloak:
-  client-id: ${KEYCLOAK_CLIENT_ID:synq-api}

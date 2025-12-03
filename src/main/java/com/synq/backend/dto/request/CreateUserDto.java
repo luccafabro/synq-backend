@@ -19,7 +19,8 @@ public record CreateUserDto(
         @Email(message = "Email must be valid")
         String email,
 
-        String displayName,
+        String firstName,
+        String lastName,
         String avatarUrl,
         boolean emailVerified,
         UserStatus status,

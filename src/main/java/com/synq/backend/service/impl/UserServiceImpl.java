@@ -8,6 +8,7 @@ import com.synq.backend.exceptions.EndpointException;
 import com.synq.backend.mapper.UserMapper;
 import com.synq.backend.model.User;
 import com.synq.backend.repository.UserRepository;
+import com.synq.backend.service.KeycloakService;
 import com.synq.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final KeycloakService keycloakService;
 
     @Override
     public UserDto createUser(CreateUserDto dto) {
@@ -43,11 +45,27 @@ public class UserServiceImpl implements UserService {
             throw new EndpointException("Email already exists", HttpStatus.CONFLICT);
         }
 
-        User user = userMapper.toEntity(dto);
-        User savedUser = userRepository.save(user);
+        try {
+            String keycloakUserId = keycloakService.createUser(
+                    dto.username(),
+                    dto.email(),
+                    dto.firstName(),
+                    dto.lastName()
+            );
 
-        log.info("User created successfully with ID: {}", savedUser.getId());
-        return userMapper.toDto(savedUser);
+            log.info("User created in Keycloak with ID: {}", keycloakUserId);
+
+            User user = userMapper.toEntity(dto);
+            user.setKeycloakExternalId(keycloakUserId);
+            User savedUser = userRepository.save(user);
+
+            log.info("User created successfully with ID: {}", savedUser.getId());
+            return userMapper.toDto(savedUser);
+
+        } catch (Exception e) {
+            log.error("Error creating user: {}", dto.username(), e);
+            throw e;
+        }
     }
 
     @Override
@@ -58,6 +76,21 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EndpointException("User not found", HttpStatus.NOT_FOUND));
 
         userMapper.updateEntity(dto, user);
+
+        if (user.getKeycloakExternalId() != null) {
+            try {
+                keycloakService.updateUser(
+                        user.getKeycloakExternalId(),
+                        dto.email(),
+                        dto.firstName(),
+                        dto.lastName()
+                );
+                log.info("User updated in Keycloak: {}", user.getKeycloakExternalId());
+            } catch (Exception e) {
+                log.error("Failed to update user in Keycloak, but continuing with database update", e);
+            }
+        }
+
         User updatedUser = userRepository.save(user);
 
         log.info("User updated successfully with ID: {}", id);
@@ -113,8 +146,16 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         log.debug("Deleting user with ID: {}", id);
 
-        if (!userRepository.existsById(id)) {
-            throw new EndpointException("User not found", HttpStatus.NOT_FOUND);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EndpointException("User not found", HttpStatus.NOT_FOUND));
+
+        if (user.getKeycloakExternalId() != null) {
+            try {
+                keycloakService.deleteUser(user.getKeycloakExternalId());
+                log.info("User deleted from Keycloak: {}", user.getKeycloakExternalId());
+            } catch (Exception e) {
+                log.error("Failed to delete user from Keycloak, but continuing with database deletion", e);
+            }
         }
 
         userRepository.deleteById(id);
