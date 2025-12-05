@@ -3,10 +3,13 @@ package com.synq.backend.service.impl;
 import com.synq.backend.dto.request.CreateUserDto;
 import com.synq.backend.dto.request.UpdateUserDto;
 import com.synq.backend.dto.response.UserDto;
+import com.synq.backend.enums.UserRole;
 import com.synq.backend.enums.UserStatus;
 import com.synq.backend.exceptions.EndpointException;
 import com.synq.backend.mapper.UserMapper;
+import com.synq.backend.model.Role;
 import com.synq.backend.model.User;
+import com.synq.backend.repository.RoleRepository;
 import com.synq.backend.repository.UserRepository;
 import com.synq.backend.service.KeycloakService;
 import com.synq.backend.service.UserService;
@@ -17,8 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Implementation of UserService using SOLID principles and Java 17 features
@@ -30,6 +35,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final KeycloakService keycloakService;
 
@@ -57,9 +63,18 @@ public class UserServiceImpl implements UserService {
 
             User user = userMapper.toEntity(dto);
             user.setKeycloakExternalId(keycloakUserId);
+
+            // Assign roles - default to USER role if none provided
+            Set<Role> roles = assignRoles(dto.roles() != null && !dto.roles().isEmpty()
+                    ? dto.roles()
+                    : Set.of(UserRole.USER));
+            user.setRoles(roles);
+
             User savedUser = userRepository.save(user);
 
-            log.info("User created successfully with ID: {}", savedUser.getId());
+            log.info("User created successfully with ID: {} and roles: {}",
+                    savedUser.getId(),
+                    savedUser.getRoles().stream().map(r -> r.getName().name()).toList());
             return userMapper.toDto(savedUser);
 
         } catch (Exception e) {
@@ -76,6 +91,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EndpointException("User not found", HttpStatus.NOT_FOUND));
 
         userMapper.updateEntity(dto, user);
+
+        // Update roles if provided
+        if (dto.roles() != null && !dto.roles().isEmpty()) {
+            Set<Role> roles = assignRoles(dto.roles());
+            user.setRoles(roles);
+            log.debug("Updated roles for user ID {}: {}", id, dto.roles());
+        }
 
         if (user.getKeycloakExternalId() != null) {
             try {
@@ -178,6 +200,7 @@ public class UserServiceImpl implements UserService {
                             .emailVerified(false)
                             .status(UserStatus.ACTIVE)
                             .lastLoginAt(LocalDateTime.now())
+                            .roles(assignRoles(Set.of(UserRole.USER)))
                             .build();
 
                     return userRepository.save(newUser);
@@ -192,6 +215,26 @@ public class UserServiceImpl implements UserService {
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
         });
+    }
+
+    /**
+     * Assign roles to user by fetching them from database
+     * Creates roles if they don't exist
+     */
+    private Set<Role> assignRoles(Set<UserRole> roleNames) {
+        Set<Role> roles = new HashSet<>();
+
+        for (UserRole roleName : roleNames) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseGet(() -> {
+                        log.warn("Role {} not found in database, creating it", roleName);
+                        Role newRole = new Role(roleName, roleName.getDescription());
+                        return roleRepository.save(newRole);
+                    });
+            roles.add(role);
+        }
+
+        return roles;
     }
 }
 

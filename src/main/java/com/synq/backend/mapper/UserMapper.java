@@ -6,7 +6,7 @@ import com.synq.backend.dto.response.UserDto;
 import com.synq.backend.model.User;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {RoleMapper.class})
 public interface UserMapper {
 
     UserDto toDto(User user);
@@ -20,6 +20,7 @@ public interface UserMapper {
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "memberships", ignore = true)
     @Mapping(target = "messages", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     User toEntity(CreateUserDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -35,6 +36,7 @@ public interface UserMapper {
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "memberships", ignore = true)
     @Mapping(target = "messages", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     void updateEntity(UpdateUserDto dto, @MappingTarget User user);
 }
 

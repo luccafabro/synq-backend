@@ -4,6 +4,7 @@ import com.synq.backend.enums.UserStatus;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * DTO for user response
@@ -20,6 +21,7 @@ public record UserDto(
         String keycloakExternalId,
         Map<String, Object> metadata,
         LocalDateTime lastLoginAt,
+        Set<RoleDto> roles,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

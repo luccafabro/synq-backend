@@ -11,8 +11,10 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * User entity representing authenticated users.
@@ -76,5 +78,18 @@ public class User extends BaseEntity {
     @JsonIgnore
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"),
+            indexes = {
+                    @Index(name = "idx_user_roles_user", columnList = "user_id"),
+                    @Index(name = "idx_user_roles_role", columnList = "role_id")
+            }
+    )
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
 }
 

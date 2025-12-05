@@ -1,0 +1,4 @@
+ALTER TABLE roles
+    ADD COLUMN active TINYINT NOT NULL DEFAULT 1 AFTER updated_at,
+    ADD COLUMN version BIGINT AFTER active;
+

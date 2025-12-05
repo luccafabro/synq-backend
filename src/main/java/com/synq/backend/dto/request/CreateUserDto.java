@@ -1,11 +1,13 @@
 package com.synq.backend.dto.request;
 
+import com.synq.backend.enums.UserRole;
 import com.synq.backend.enums.UserStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * DTO for creating a new user
@@ -25,7 +27,8 @@ public record CreateUserDto(
         boolean emailVerified,
         UserStatus status,
         String keycloakExternalId,
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+        Set<UserRole> roles
 ) {
 }
 
